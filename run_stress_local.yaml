@@ -1,0 +1,39 @@
+# Run with Poetry:
+#   poetry run testfabric run_stress_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_stress_local.yaml
+# This is a local stress example:
+#   - `run` is omitted, so repo_url defaults to `.`
+#   - local execution is the default for command suites
+#   - worker capacity is derived from the requested stage/global concurrency
+
+health:
+  min_disk_gb: 1
+
+pipeline:
+  stages:
+    - title: repeat shell command locally
+      suite: stress_cmd
+      max_workers: 5
+      execution:
+        mode: repeat
+        count: 20
+
+suites:
+  stress_cmd:
+    steps:
+      - name: write-evidence
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - |
+            {
+              echo "run=$TESTFABRIC_RUN_ID"
+              echo "stage=$TESTFABRIC_STAGE_ID"
+              echo "job=$TESTFABRIC_JOB_ID"
+              echo "attempt=$TESTFABRIC_ATTEMPT"
+            } > "$TESTFABRIC_JOB_ARTIFACTS_DIR/context.txt"
+          - echo "stress command completed" > "$TESTFABRIC_ARTIFACTS_DIR/result.txt"
+
+outputs:
+  junit: null
+  html: null

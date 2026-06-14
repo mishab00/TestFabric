@@ -1,0 +1,30 @@
+run:
+  name: "portal-retry"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+pipeline:
+  stages:
+    - title: "retry once then pass"
+      suite: portal_retry_once
+      executor: local
+      max_retries: 1
+
+suites:
+  portal_retry_once:
+    kind: command
+    steps:
+      - name: fail_then_pass
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          printf "attempt=%s\n" "$TESTFABRIC_ATTEMPT" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/attempt.txt"
+          if [ "$TESTFABRIC_ATTEMPT" = "0" ]; then
+            echo "first attempt fails" >&2
+            exit 1
+          fi
+
+outputs:
+  junit: null
+  html: null

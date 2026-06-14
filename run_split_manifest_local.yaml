@@ -1,0 +1,29 @@
+# Run with Poetry:
+#   poetry run testfabric run_split_manifest_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_split_manifest_local.yaml
+# This example uses an external split manifest and runs up to 2 jobs in parallel.
+
+pipeline:
+  stages:
+    - title: split shell steps from manifest
+      suite: split_cmd
+      max_workers: 2
+      split:
+        manifest_path: manifests/split.json
+
+suites:
+  split_cmd:
+    steps:
+      - name: step-1
+        bash: echo step-1
+      - name: step-2
+        bash: echo step-2
+      - name: step-3
+        bash: echo step-3
+      - name: step-4
+        bash: echo step-4
+
+outputs:
+  junit: null
+  html: null

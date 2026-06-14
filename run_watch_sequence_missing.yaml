@@ -1,0 +1,47 @@
+run:
+  name: watch-sequence-missing
+  repo_url: .
+  ref: HEAD
+  workdir: .testfabric/work
+  artifacts_dir: artifacts
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Watch the job's stdout stream.
+    - name: command_out
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+  watchers:
+    # The final milestone never appears, so the run should fail.
+    - name: job_flow_complete
+      source: command_out
+      missing: fail
+      when:
+        sequence:
+          - "job started"
+          - "job processed"
+          - "job finished"
+      then:
+        report:
+          message: "Job flow reached finished"
+
+pipeline:
+  stages:
+    - title: watch job flow sequence missing
+      suite: flow
+      executor: local
+
+suites:
+  flow:
+    kind: command
+    steps:
+      - name: emit_flow
+        cmd:
+          - python3
+          - -u
+          - -c
+          - |
+            print("job started", flush=True)
+            print("job processed", flush=True)

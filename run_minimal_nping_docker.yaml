@@ -1,0 +1,28 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_nping_docker.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_nping_docker.yaml
+# This example needs a working Docker daemon. If Docker is unavailable, TestFabric fails in health preflight.
+
+pipeline:
+  stages:
+    - suite: nping_google
+      # Command suites default to `local`; this is the only reason executor is set here.
+      executor: docker
+
+suites:
+  nping_google:
+    # `kind` is omitted on purpose here: a suite with `steps` is inferred as `command`.
+    steps:
+      - name: nping-google
+        # `shell` is a good fit for a simple readable one-line command.
+        shell: nping --tcp -p 443 google.com -c 1
+        # capture also works for `shell`; use `cmd:` when you want explicit argv.
+        stdout_to: nping.txt
+
+docker:
+  mode: template
+  image: testfabric-nping:ci
+  # Managed Docker image will install `nmap`, which provides `nping`.
+  system_packages:
+    - nmap

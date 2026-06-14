@@ -1,0 +1,49 @@
+# Run with Poetry:
+#   poetry run testfabric run_lifecycle_groups_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_lifecycle_groups_local.yaml
+# This example stays serial by default, which keeps the lifecycle flow easy to inspect.
+
+pipeline:
+  stages:
+    - title: setup group one
+      suite: prepare_cmd
+      lifecycle:
+        mode: setup
+
+    - title: run group one
+      suite: run_cmd
+
+    - title: cleanup group one
+      suite: cleanup_cmd
+      lifecycle:
+        mode: teardown
+        when: always
+
+    - title: setup group two
+      suite: prepare_cmd
+      lifecycle:
+        mode: setup
+
+    - title: run group two
+      suite: run_cmd
+
+suites:
+  prepare_cmd:
+    steps:
+      - name: prepare
+        bash: echo prepare
+
+  run_cmd:
+    steps:
+      - name: run
+        bash: echo run
+
+  cleanup_cmd:
+    steps:
+      - name: cleanup
+        bash: echo cleanup
+
+outputs:
+  junit: null
+  html: null

@@ -1,0 +1,47 @@
+run:
+  name: "watch-remote-file"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+targets:
+  file: watch_remote_file_targets.yaml
+
+credentials:
+  file: watch_remote_file_credentials.yaml
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Resolve the remote file location from inventory, then poll it over SSH.
+    - name: remote_app_log
+      type: remote_file
+      phases: [stage]
+      target: remote-log-host
+      path: /var/log/testfabric-watch.log
+      mode: snapshot
+      interval_seconds: 1
+  watchers:
+    # Report when the remote file contains the marker line.
+    - name: remote_file_contains_watch_hit
+      source: remote_app_log
+      when:
+        match: WATCH-HIT
+      then:
+        report:
+          message: "Remote file watcher saw WATCH-HIT"
+
+pipeline:
+  stages:
+    - title: "watch remote file"
+      suite: watch_remote_file
+      executor: local
+
+suites:
+  watch_remote_file:
+    kind: command
+    steps:
+      # The stage stays alive briefly so the remote poller has time to observe the file.
+      - name: hold_window_open
+        shell: sleep 4

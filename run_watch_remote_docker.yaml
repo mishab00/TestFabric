@@ -1,0 +1,60 @@
+run:
+  name: "watch-remote-docker"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+inputs:
+  remote_docker_key_path:
+    required: true
+  remote_docker_known_hosts:
+    required: true
+
+targets:
+  builders:
+    remote-a:
+      address: 1.1.1.1
+      credential: remote_builder
+
+credentials:
+  remote_builder:
+    user: root
+    key_path: "${inputs.remote_docker_key_path}"
+    known_hosts: "${inputs.remote_docker_known_hosts}"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    - name: command_out
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+  watchers:
+    - name: detect_remote_phrase
+      source: command_out
+      when:
+        match: WATCH-HIT
+      then:
+        fail: immediate
+
+pipeline:
+  stages:
+    - title: "watch remote docker command"
+      suite: watch_remote_command
+      executor: docker
+      targets: builders
+
+suites:
+  watch_remote_command:
+    kind: command
+    steps:
+      - name: emit_phrase
+        bash: |
+          echo "WATCH-HIT from remote docker"
+
+docker:
+  image: "testfabric-watch:ci"
+  workdir: "/work"
+  repo_mount: "/work"
+  mode: "custom"

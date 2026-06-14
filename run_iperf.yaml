@@ -1,0 +1,148 @@
+run:
+  name: nlb-perf
+  repo_url: "git@bits.linode.com:Linode/NLB-Testing.git"
+  ref: "NB-2598-nlb-performance"
+  workdir: testfabric/iperf_work
+  artifacts_dir: "testfabric/runs"
+  runs_subdir: ""
+  workers_tmp: "testfabric/runs/workers_tmp"
+  run_id: ""   # keep empty; Jenkins will pass run_id via CLI
+
+inputs:
+  registry_username:
+    env: USERNAME
+    required: true
+  registry_password:
+    type: secret
+    env: PASSWORD
+    required: true
+  api_token:
+    type: secret
+    env: API_TOKEN_PSW
+    required: true
+  artifacts_dir_in_env:
+    type: path
+    env: ARTIFACT_DIR
+    required: true
+  tf_params_path:
+    type: path
+    env: TF_PARAMS_PATH
+    required: true
+  ssh_auth_sock:
+    type: path
+    env: SSH_AUTH_SOCK
+
+workers:
+  mode: local
+  max_workers: 8
+
+docker:
+  image: "nlb-docker:ci"
+  dockerfile: "tests/performance/Dockerfile"
+  repo_mount: /work
+  workdir: /work
+  no_cache: false
+  build_args:
+    USERNAME: "${inputs.registry_username}"
+    PASSWORD: "${inputs.registry_password}"
+  run:
+    network: host
+    shm_size: 1g
+    keep_container: false
+    env:
+      TF_PARAMS_PATH: "${inputs.tf_params_path}"
+      SSH_AUTH_SOCK: "${inputs.ssh_auth_sock}"
+
+
+outputs:
+  junit: junit.xml
+  html: report.html
+
+parallelism:
+  max_workers: 8
+  chunk_size: 25
+  max_retries: 0
+
+suites:
+  bringup_env:
+    kind: pytest
+    path: tests/performance
+    select:
+      - test_bringup_env.py::test_performance_bringup_params
+    args: "--setup-show -s"
+    extra_env:
+      API_TOKEN: "${inputs.api_token}"
+      ARTIFACTS_DIR: "${inputs.artifacts_dir_in_env}"
+
+  validate_resolve:
+    kind: command
+    steps:
+      - name: validate
+        cmd: ["bash", "-lc", "make iperf-validate"]
+      - name: resolve-backends
+        cmd: ["bash", "-lc", "make iperf-resolve-backends"]
+      - name: ssh-check
+        cmd: ["bash", "-lc", "make iperf-ssh-check"]
+
+  iperf_servers:
+    kind: command
+    steps:
+      - name: iperf-servers
+        cmd: ["bash", "-lc", "make iperf-servers"]
+
+  metrics_start:
+    kind: command
+    steps:
+      - name: metrics-start
+        cmd: ["bash", "-lc", "make iperf-metrics-start"]
+
+  iperf_clients:
+    kind: command
+    steps:
+      - name: iperf-run
+        cmd: ["bash", "-lc", "make iperf-run DURATION=$DURATION IPERF_EXTRA_ARGS=\"$IPERF_EXTRA_ARGS\""]
+
+  metrics_stop_fetch:
+    kind: command
+    steps:
+      - name: metrics-stop
+        cmd: ["bash", "-lc", "make iperf-metrics-stop"]
+      - name: metrics-fetch
+        cmd: ["bash", "-lc", "make iperf-metrics-fetch"]
+
+  cleanup:
+    kind: pytest
+    path: tests/performance
+    select:
+      - test_bringup_env.py::test_performance_delete_created_setup
+    args: "--setup-show -s"
+    extra_env:
+      API_TOKEN: "${inputs.api_token}"
+      ARTIFACTS_DIR: "${inputs.artifacts_dir_in_env}"
+
+pipeline:
+  default_executor: docker
+  stages:
+    - title: Bring Up Environment
+      suite: bringup_env
+      executor: docker
+
+    - title: Validate + Resolve
+      suite: validate_resolve
+      executor: docker
+
+    - title: iPerf Servers
+      suite: iperf_servers
+      executor: docker
+
+    - title: Start Metrics
+      suite: metrics_start
+      executor: docker
+
+    - title: Run Clients
+      suite: iperf_clients
+      executor: docker
+
+    - title: Stop Metrics + Fetch
+      suite: metrics_stop_fetch
+      executor: docker

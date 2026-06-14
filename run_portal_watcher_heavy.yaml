@@ -1,0 +1,66 @@
+run:
+  name: "portal-watcher-heavy"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    - name: run_stdout
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+    - name: stdout_stream_log
+      type: file
+      path: "logs/stdout.stream.log"
+      mode: tail
+      phases: [stage]
+    - name: cpu_usage
+      type: metric
+      mode: poll
+      interval_seconds: 1
+      shell: echo "95.5"
+  watchers:
+    - name: session_contains_watch_hit
+      source: run_stdout
+      when:
+        match: WATCH-HIT
+      then:
+        report:
+          message: "Session watcher saw WATCH-HIT"
+    - name: file_contains_watch_hit
+      source: stdout_stream_log
+      when:
+        match: WATCH-HIT
+      then:
+        report:
+          message: "File watcher saw WATCH-HIT"
+    - name: cpu_over_90
+      source: cpu_usage
+      when:
+        gt: 90
+      then:
+        report:
+          message: "CPU usage crossed 90%"
+
+pipeline:
+  stages:
+    - title: "watch heavy mix"
+      suite: portal_watcher_mix
+      executor: local
+
+suites:
+  portal_watcher_mix:
+    kind: command
+    steps:
+      - name: emit_watch_hit
+        shell: |
+          echo "WATCH-HIT from watcher heavy run"
+          echo "more run output"
+          sleep 3
+
+outputs:
+  junit: null
+  html: null

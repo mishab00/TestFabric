@@ -1,0 +1,46 @@
+run:
+  name: "watch-http-health"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+inputs:
+  http_watch_port:
+    required: true
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Poll a health endpoint while the command stage is running.
+    - name: api_health
+      type: http
+      phases: [run, stage, job]
+      url: "http://127.0.0.1:${inputs.http_watch_port}/health"
+      mode: poll
+      interval_seconds: 1
+  watchers:
+    # Report when the health check reports a degraded state.
+    - name: api_degraded
+      source: api_health
+      when:
+        status: 500
+        match: degraded
+      then:
+        report:
+          message: "API health reported a degraded state"
+
+pipeline:
+  stages:
+    - title: "observe api health"
+      suite: watch_http_health
+      executor: local
+
+suites:
+  watch_http_health:
+    kind: command
+    steps:
+      # The stage itself does the work while the watcher observes the health endpoint.
+      - name: announce_ready
+        bash: |
+          echo "stage complete"

@@ -1,0 +1,36 @@
+run:
+  name: "portal-simple-success"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+pipeline:
+  stages:
+    - title: "prepare portal-friendly run"
+      suite: portal_success_prepare
+      executor: local
+    - title: "verify portal-friendly run"
+      suite: portal_success_verify
+      executor: local
+
+suites:
+  portal_success_prepare:
+    kind: command
+    steps:
+      - name: write_prepare_artifact
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          echo "prepare ok" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/prepare.txt"
+
+  portal_success_verify:
+    kind: command
+    steps:
+      - name: write_verify_artifact
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          echo "verify ok" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/verify.txt"
+
+outputs:
+  junit: null
+  html: null

@@ -1,0 +1,33 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_curl_repeat_parallel_global.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_curl_repeat_parallel_global.yaml
+# This example keeps the stage minimal and lets the global parallelism default
+# control concurrency for the stage.
+# Result:
+#   - 5 total repeated jobs are created
+#   - up to 3 jobs run in parallel
+#   - the remaining 2 wait in queue until a slot is free
+
+parallelism:
+  max_workers: 3
+
+pipeline:
+  stages:
+    - suite: curl_google
+      execution:
+        mode: repeat
+        count: 5
+
+suites:
+  curl_google:
+    steps:
+      - name: write-job-id
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - printf "%s\n" "$TESTFABRIC_JOB_ID" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/job.txt"
+      - name: curl-google
+        # `shell` keeps the one-line command readable.
+        shell: curl -I -sS https://google.com
+        # `stdout_to` captures into the stage artifacts tree, even for shell steps.
+        stdout_to: google-$TESTFABRIC_JOB_ID.txt

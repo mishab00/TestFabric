@@ -1,0 +1,49 @@
+run:
+  name: "portal-late-failure"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+pipeline:
+  stages:
+    - title: "baseline setup"
+      suite: portal_late_baseline
+      executor: local
+    - title: "baseline verification"
+      suite: portal_late_verification
+      executor: local
+    - title: "fail late in run"
+      suite: portal_late_failure
+      executor: local
+
+suites:
+  portal_late_baseline:
+    kind: command
+    steps:
+      - name: write_baseline_artifact
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          echo "baseline ok" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/baseline.txt"
+
+  portal_late_verification:
+    kind: command
+    steps:
+      - name: write_verification_artifact
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          echo "verification ok" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/verification.txt"
+
+  portal_late_failure:
+    kind: command
+    steps:
+      - name: emit_late_failure
+        shell: |
+          mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          echo "late failure marker" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/failure.txt"
+          echo "portal late failure" >&2
+          exit 2
+
+outputs:
+  junit: null
+  html: null

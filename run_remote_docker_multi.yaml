@@ -1,0 +1,49 @@
+# Run with:
+#   poetry run testfabric run_remote_docker_multi.yaml
+#
+# This example shows one stage per remote target.
+
+workers:
+  mode: local
+  max_workers: 2
+
+targets:
+  builders:
+    builder-a:
+      address: builder-a.example.com
+      credential: docker_remote
+    builder-b:
+      address: builder-b.example.com
+      credential: docker_remote
+
+credentials:
+  docker_remote:
+    user: docker-user
+    port: 22
+    key_path: ~/.ssh/id_ed25519
+    known_hosts: ~/.ssh/known_hosts
+
+pipeline:
+  stages:
+    - title: remote-docker-smoke-a
+      suite: smoke
+      executor: docker
+      targets: builder-a
+    - title: remote-docker-smoke-b
+      suite: smoke
+      executor: docker
+      targets: builder-b
+
+suites:
+  smoke:
+    steps:
+      - name: write-hostname
+        shell: hostname
+        stdout_to: hostname.txt
+
+docker:
+  mode: template
+  image: testfabric-remote-smoke:ci
+  base_image: python:3.11-slim
+  repo_mount: /work
+  workdir: /work

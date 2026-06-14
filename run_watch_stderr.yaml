@@ -1,0 +1,35 @@
+run:
+  name: "watch-stderr-fail"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Watch stderr only so any error line can fail fast.
+    - name: command_err
+      type: session
+      stream: stderr
+      phases: [run, stage, job]
+  watchers:
+    - name: fail_on_stderr
+      source: command_err
+      when:
+        match: ".+"
+      then:
+        fail: immediate
+
+pipeline:
+  stages:
+    - title: "watch stderr for errors"
+      suite: watch_stderr_fail
+      executor: local
+
+suites:
+  watch_stderr_fail:
+    kind: command
+    steps:
+      - name: emit_error
+        shell: 'echo "ERROR: something broke" >&2'

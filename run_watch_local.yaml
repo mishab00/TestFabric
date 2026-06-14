@@ -1,0 +1,35 @@
+run:
+  name: "watch-local-command"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    - name: command_out
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+  watchers:
+    - name: detect_local_phrase
+      source: command_out
+      when:
+        match: WATCH-HIT
+      then:
+        shell: 'echo "custom watch action: $TESTFABRIC_WATCH_MATCH"'
+
+pipeline:
+  stages:
+    - title: "watch local command"
+      suite: watch_local_command
+      executor: local
+
+suites:
+  watch_local_command:
+    kind: command
+    steps:
+      - name: emit_phrase
+        bash: |
+          echo "WATCH-HIT from local command"

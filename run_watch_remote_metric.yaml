@@ -1,0 +1,47 @@
+run:
+  name: "watch-remote-metric"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+targets:
+  file: watch_remote_file_targets.yaml
+
+credentials:
+  file: watch_remote_file_credentials.yaml
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Resolve the remote host from inventory, then run the metric command over SSH.
+    - name: remote_cpu_metric
+      type: metric
+      phases: [stage]
+      target: remote-log-host
+      mode: poll
+      interval_seconds: 1
+      shell: echo "92.5"
+  watchers:
+    # Report when the remote host metric crosses the threshold.
+    - name: remote_metric_over_90
+      source: remote_cpu_metric
+      when:
+        gt: 90
+      then:
+        report:
+          message: "Remote host metric crossed 90%"
+
+pipeline:
+  stages:
+    - title: "watch remote metric"
+      suite: watch_remote_metric
+      executor: local
+
+suites:
+  watch_remote_metric:
+    kind: command
+    steps:
+      # Keep the stage alive long enough for the remote poller to sample the metric.
+      - name: hold_window_open
+        shell: sleep 4

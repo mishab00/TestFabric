@@ -1,0 +1,41 @@
+run:
+  name: "watch-teardown-cleanup"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Watch teardown-stage output so a cleanup action can fire if a hang is detected.
+    - name: teardown_out
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+  watchers:
+    - name: detect_hang
+      source: teardown_out
+      when:
+        match: CLEANUP-HIT
+      then:
+        shell: |
+          echo "teardown cleanup for $TESTFABRIC_WATCH_MATCH"
+          docker rm -f "$TESTFABRIC_TARGET_ID" || true
+
+pipeline:
+  stages:
+    - title: "watch teardown cleanup"
+      suite: watch_teardown_cleanup
+      executor: local
+      lifecycle:
+        mode: teardown
+
+suites:
+  watch_teardown_cleanup:
+    kind: command
+    steps:
+      # This simulates a teardown signal that triggers the custom cleanup script.
+      - name: emit_teardown_signal
+        bash: |
+          echo "CLEANUP-HIT"

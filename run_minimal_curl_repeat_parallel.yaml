@@ -1,0 +1,29 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_curl_repeat_parallel.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_curl_repeat_parallel.yaml
+# This example overrides the defaults only to allow parallel repeat execution.
+
+pipeline:
+  stages:
+    - suite: curl_google
+      # Stage concurrency. When workers.max_workers is omitted, local worker capacity
+      # is derived from the requested stage/global concurrency.
+      max_workers: 5
+      execution:
+        mode: repeat
+        count: 5
+
+suites:
+  curl_google:
+    # `kind` is omitted on purpose here: a suite with `steps` is inferred as `command`.
+    steps:
+      - name: write-job-id
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - printf "%s\n" "$TESTFABRIC_JOB_ID" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/job.txt"
+      - name: curl-google
+        # `shell` keeps the one-line command readable.
+        shell: curl -I -sS https://google.com
+        # capture also works the same way for `bash:` and `shell:` steps.
+        stdout_to: google-$TESTFABRIC_JOB_ID.txt

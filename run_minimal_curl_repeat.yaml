@@ -1,0 +1,26 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_curl_repeat.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_curl_repeat.yaml
+# This example repeats serially because all concurrency defaults stay at 1.
+
+pipeline:
+  stages:
+    - suite: curl_google
+      execution:
+        mode: repeat
+        count: 5
+
+suites:
+  curl_google:
+    steps:
+      - name: write-job-id
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - printf "%s\n" "$TESTFABRIC_JOB_ID" > "$TESTFABRIC_JOB_ARTIFACTS_DIR/job.txt"
+      - name: curl-google
+        # `shell` keeps the one-line command readable.
+        shell: curl -I -sS https://google.com
+        # capture goes under TESTFABRIC_ARTIFACTS_DIR and can use runtime vars
+        # like $TESTFABRIC_JOB_ID even though this step uses `shell`.
+        stdout_to: google-$TESTFABRIC_JOB_ID.txt

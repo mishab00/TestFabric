@@ -1,0 +1,19 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_artifact_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_artifact_local.yaml
+# This is the smallest offline artifact example:
+#   - `run` is omitted, so repo_url defaults to `.`
+#   - local execution is the default for command suites
+#   - the command writes to stdout and TestFabric captures it under artifacts
+
+pipeline:
+  stages:
+    - suite: write_artifact
+
+suites:
+  write_artifact:
+    steps:
+      - name: write-result
+        shell: printf "artifact ok\n"
+        stdout_to: result.txt

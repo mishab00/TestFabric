@@ -1,0 +1,54 @@
+# Run with:
+#   python3 -m testfabric.cli.main run_remote_docker.yaml
+# or:
+#   poetry run testfabric run_remote_docker.yaml
+#
+# This is the recommended remote pattern:
+# - the controller stays local
+# - Docker runs on the selected remote target
+# - TestFabric talks to the remote Docker control plane through the target connection settings
+#
+# Note:
+# - Docker must already be installed on the remote target
+# - target credentials can set user/key/known_hosts and host transport can override them
+
+workers:
+  mode: local
+  max_workers: 2
+
+targets:
+  builders:
+    docker-a:
+      address: docker-a.example.com
+      credential: docker_remote
+    docker-b:
+      address: docker-b.example.com
+      credential: docker_remote
+
+credentials:
+  docker_remote:
+    user: docker-user
+    port: 22
+    key_path: ~/.ssh/id_ed25519
+    known_hosts: ~/.ssh/known_hosts
+
+pipeline:
+  stages:
+    - title: remote-docker-smoke
+      suite: smoke
+      executor: docker
+      targets: builders
+
+suites:
+  smoke:
+    steps:
+      - name: write-hostname
+        shell: hostname
+        stdout_to: hostname.txt
+
+docker:
+  mode: template
+  image: testfabric-remote-smoke:ci
+  base_image: python:3.11-slim
+  repo_mount: /work
+  workdir: /work

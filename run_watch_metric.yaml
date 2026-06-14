@@ -1,0 +1,57 @@
+run:
+  name: "watch-metric-thresholds"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Poll a metric-producing command and threshold the numeric output.
+    - name: cpu_usage
+      type: metric
+      phases: [run, stage, job]
+      mode: poll
+      interval_seconds: 1
+      shell: echo "95.5"
+    - name: disk_usage
+      type: metric
+      phases: [run, stage, job]
+      mode: poll
+      interval_seconds: 1
+      shell: echo "91.2"
+  watchers:
+    # Report when CPU usage crosses 90.
+    - name: cpu_over_90
+      source: cpu_usage
+      when:
+        gt: 90
+      then:
+        report:
+          message: "CPU usage crossed 90%"
+
+    # Report when disk usage crosses 90.
+    - name: disk_over_90
+      source: disk_usage
+      when:
+        gt: 90
+      then:
+        report:
+          message: "Disk usage crossed 90%"
+
+pipeline:
+  stages:
+    - title: "watch metrics"
+      suite: watch_metric
+      executor: local
+
+suites:
+  watch_metric:
+    kind: command
+    steps:
+      # The stage itself is just a tiny placeholder while the metric sources are polled.
+      - name: emit_metrics
+        shell: |
+          echo "metrics running"
+          sleep 2

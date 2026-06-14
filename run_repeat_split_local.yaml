@@ -1,0 +1,40 @@
+# Run with Poetry:
+#   poetry run testfabric run_repeat_split_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_repeat_split_local.yaml
+# This example repeats the same split groups locally.
+
+pipeline:
+  stages:
+    - title: repeat split shell steps locally
+      suite: repeat_split_cmd
+      max_workers: 2
+      execution:
+        mode: repeat
+        count: 3
+      split:
+        count: 2
+
+suites:
+  repeat_split_cmd:
+    steps:
+      - name: step-1
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - echo "step-1" >> "$TESTFABRIC_JOB_ARTIFACTS_DIR/history.txt"
+      - name: step-2
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - echo "step-2" >> "$TESTFABRIC_JOB_ARTIFACTS_DIR/history.txt"
+      - name: step-3
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - echo "step-3" >> "$TESTFABRIC_JOB_ARTIFACTS_DIR/history.txt"
+      - name: step-4
+        bash:
+          - mkdir -p "$TESTFABRIC_JOB_ARTIFACTS_DIR"
+          - echo "step-4" >> "$TESTFABRIC_JOB_ARTIFACTS_DIR/history.txt"
+
+outputs:
+  junit: null
+  html: null

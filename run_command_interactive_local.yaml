@@ -1,0 +1,50 @@
+run:
+  name: "command-interactive-local"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Watch the session output so we can fail fast if the prompt flow misbehaves.
+    - name: session_out
+      type: session
+      stream: stdout
+      phases: [run, stage, job]
+  watchers:
+    # If the interactive script prints a traceback, fail the run immediately.
+    - name: fail_on_traceback
+      source: session_out
+      when:
+        match: Traceback
+      then:
+        fail: immediate
+
+pipeline:
+  stages:
+    - title: "local command session"
+      suite: password_prompt
+      executor: local
+
+suites:
+  password_prompt:
+    kind: command
+    cmd:
+      - python3
+      - -u
+      - -c
+      - |
+        import sys
+
+        print("Password:", flush=True)
+        value = sys.stdin.readline().strip()
+        print(f"Got {value}", flush=True)
+    expect:
+      # When the script asks for a password, send the expected answer.
+      - name: reply_password
+        when:
+          match: "Password:"
+        then:
+          send: "secret"

@@ -1,0 +1,22 @@
+# Run with Poetry:
+#   poetry run testfabric run_minimal_curl_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_minimal_curl_local.yaml
+# `run` is omitted on purpose here:
+#   repo_url defaults to `.`
+#   workdir defaults to `.testfabric/work`
+#   artifacts_dir defaults to `artifacts`
+
+pipeline:
+  stages:
+    - suite: curl_google
+
+suites:
+  curl_google:
+    # `kind` is omitted on purpose here: a suite with `steps` is inferred as `command`.
+    steps:
+      - name: curl-google
+        # `shell` is a good fit for a simple readable one-line command.
+        shell: curl -I -sS https://google.com
+        # `stdout_to` also works with `bash:` and `shell:` if you need shell features.
+        stdout_to: google-headers.txt

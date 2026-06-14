@@ -1,0 +1,41 @@
+run:
+  name: "watch-file-artifact"
+  repo_url: "."
+  ref: "HEAD"
+  workdir: ".testfabric/work"
+  artifacts_dir: "artifacts"
+
+watch:
+  phases: [run, stage, job]
+  sources:
+    # Poll the run's streamed stdout log while the job is running.
+    - name: run_stdout_log
+      type: file
+      phases: [stage]
+      path: "logs/stdout.stream.log"
+      mode: tail
+  watchers:
+    # Report when the streamed log contains the marker line.
+    - name: file_contains_watch_hit
+      source: run_stdout_log
+      when:
+        match: WATCH-HIT
+      then:
+        report:
+          message: "File watcher saw WATCH-HIT"
+
+pipeline:
+  stages:
+    - title: "watch file artifact"
+      suite: watch_file_artifact
+      executor: local
+
+suites:
+  watch_file_artifact:
+    kind: command
+    steps:
+      # The command writes a marker line and keeps the stage alive briefly so the poller can see it.
+      - name: write_watch_file
+        shell: |
+          echo "WATCH-HIT from file stream"
+          sleep 2

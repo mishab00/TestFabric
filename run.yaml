@@ -1,0 +1,102 @@
+run:
+  name: "jumpbox-mvp"
+  repo_url: "git@bits.linode.com:LinodeAPI/nodebalancer_testing.git"
+  ref: "reusable_resources_poc"
+  workdir: "testfabric/work"
+  artifacts_dir: "testfabric/runs"
+
+inputs:
+  env_name:
+    required: true
+  token:
+    type: secret
+    env: TOKEN
+    required: true
+  artifactory_username:
+    env: ARTIFACTORY_USERNAME
+    required: true
+  artifactory_api_key:
+    type: secret
+    env: ARTIFACTORY_API_KEY
+    required: true
+
+profiles:
+  remote:
+    inputs:
+      env_name: remote
+  devenv:
+    inputs:
+      env_name: devenv
+
+workers:
+  mode: local
+  max_workers: 12
+
+pipeline:
+  stages:
+    - title: "precheck on jumpbox"
+      suite: smoke_cmd
+      executor: local
+
+    - title: "build docker image"
+      suite: noop_cmd
+      executor: local
+      build: true
+
+    - title: "run e2e pytest"
+      suite: e2e
+      executor: docker
+
+    - title: "post actions"
+      suite: post_cmd
+      executor: local
+
+suites:
+  e2e:
+    kind: pytest
+    path: tests/e2e
+    rootdir: tests/e2e
+    select:
+      - endpoints/nodebalancers/test_nodebalancers_update_nodes_configs.py
+    args: "--payment-token=${inputs.token} --env=${inputs.env_name} --token=${inputs.token} --setup-show"
+    extra_env:
+      TOKEN: "${inputs.token}"
+
+  smoke_cmd:
+    kind: command
+    steps:
+      - name: precheck
+        cmd: ["bash", "-lc", "uname -a && whoami"]
+
+  post_cmd:
+    kind: command
+    steps:
+      - name: done
+        cmd: ["bash", "-lc", "echo finished"]
+
+  # helper suite used only to trigger build step
+  noop_cmd:
+    kind: command
+    steps:
+      - name: noop
+        cmd: ["bash", "-lc", "true"]
+
+docker:
+  dockerfile: "Dockerfile"
+  image: "your-repo-tests:ci"
+  workdir: /work
+  build_args:
+    ARTIFACTORY_USERNAME: "${inputs.artifactory_username}"
+    ARTIFACTORY_API_KEY: "${inputs.artifactory_api_key}"
+  run:
+    shm_size: "1g"
+    network: "host"
+
+parallelism:
+  max_workers: 12
+  chunk_size: 1
+  max_retries: 1
+
+outputs:
+  junit: junit.xml
+  html: report.html

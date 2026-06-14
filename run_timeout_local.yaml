@@ -1,0 +1,25 @@
+# Run with Poetry:
+#   poetry run testfabric run_timeout_local.yaml
+# Run without Poetry (if this Python already has TestFabric deps installed):
+#   python3 -m testfabric.cli.main run_timeout_local.yaml
+# This example stays fully local and serial by default.
+
+pipeline:
+  stages:
+    - title: timeout shell command locally
+      suite: timeout_cmd
+      timeout:
+        job_seconds: 2
+        stage_seconds: 5
+
+suites:
+  timeout_cmd:
+    steps:
+      - name: sleep-too-long
+        bash:
+          - echo "this command is expected to time out"
+          - sleep 10
+
+outputs:
+  junit: null
+  html: null
