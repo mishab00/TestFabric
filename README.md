@@ -867,3 +867,7 @@ testfabric/
   Under `artifacts/`, `runs/` stores final mirrored runs and `workers_tmp/` stores worker staging content.
 - Keep secrets in environment variables, not committed YAML.
 - `run_remote_docker.yaml` shows the recommended remote pattern: local controller, remote Docker target, normal TestFabric reports/artifacts on the controller side.
+
+#Refactor
+While originally it was a cool idea, to create a framework for test runs, I think the project can benefit more if it is split into several tools that I will be able to add to my project or to any project as a helper
+For example, the idea of threads, Docker sounds very good, and can be used - the benefits are enormous, async, threads, and any other tool from inside Python simply not working well when we need long-running instances, for example, for traffic or something else like a pytest pipeline, so threads that are based on Docker can be beneficial even without all the framework
